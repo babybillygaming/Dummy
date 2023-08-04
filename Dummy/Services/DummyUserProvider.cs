@@ -1,4 +1,4 @@
-﻿extern alias JetBrainsAnnotations;
+extern alias JetBrainsAnnotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,9 +28,10 @@ using Steamworks;
 using UnityEngine;
 using Color = System.Drawing.Color;
 using UColor = UnityEngine.Color;
+using System.IO;
+using System.Collections.Concurrent;
 
-namespace Dummy.Services
-{
+namespace Dummy.Services{
     [UsedImplicitly]
     public class DummyUserProvider : IUserProvider, IAsyncDisposable
     {
@@ -39,6 +40,8 @@ namespace Dummy.Services
         private readonly ILogger<DummyUserProvider> m_Logger;
         private readonly ILoggerFactory m_LoggerFactory;
         private readonly ILifetimeScope m_LifetimeScope;
+        private readonly ConcurrentQueue<ulong> m_SteamIdsQueue = new ConcurrentQueue<ulong>();
+
 
         private UnturnedUserProvider UserProvider => m_LifetimeScope.Resolve<IUserManager>().UserProviders
             .OfType<UnturnedUserProvider>().FirstOrDefault()!;
@@ -234,6 +237,8 @@ namespace Dummy.Services
         public async Task<DummyUser> AddDummyAsync(CSteamID? id, HashSet<CSteamID>? owners = null,
             UnturnedUser? userCopy = null, ConfigurationSettings? settings = null)
         {
+            // ... (existing code)
+
             var localizer = m_PluginAccessor.Instance?.LifetimeScope.Resolve<IStringLocalizer>() ??
                             NullStringLocalizer.Instance;
             var configuration = m_PluginAccessor.Instance?.Configuration ?? NullConfiguration.Instance;
@@ -241,7 +246,7 @@ namespace Dummy.Services
 
             owners ??= new();
 
-            var sId = id ?? GetAvailableId();
+            var sId = id ?? GetAvailableIdFromSteamIdsFile();
 
             ValidateSpawn(sId);
 
@@ -310,6 +315,56 @@ namespace Dummy.Services
                     hasProof = true
                 };
             }
+                    CSteamID GetAvailableIdFromSteamIdsFile()
+        {
+            var steamIdsFilePath = "/home/ubuntu/steamids.txt"; // Adjust the file path accordingly
+            var steamIds = ReadSteamIdsFromFile(steamIdsFilePath);
+            var result = new CSteamID(1);
+
+            while (DummyUsers.Any(x => x.SteamID == result || steamIds.Contains(result.m_SteamID)))
+            {
+                result.m_SteamID++;
+            }
+
+            return result;
+        }
+
+        HashSet<ulong> ReadSteamIdsFromFile(string filePath)
+        {
+            var steamIds = new HashSet<ulong>();
+
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    using (var reader = new StreamReader(filePath))
+                    {
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            if (ulong.TryParse(line, out var steamId))
+                            {
+                                steamIds.Add(steamId);
+                            }
+                            else
+                            {
+                                m_Logger.LogWarning($"Invalid Steam ID in the file: {line}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    m_Logger.LogWarning($"Steam IDs file not found: {filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogError(ex, $"Error reading Steam IDs from file: {filePath}");
+            }
+
+            return steamIds;
+        }
 
             PrepareInventoryDetails(pending);
 
@@ -496,16 +551,53 @@ namespace Dummy.Services
             }
         }
 
-        public virtual CSteamID GetAvailableId()
-        {
-            var result = new CSteamID(1);
+private CSteamID GetNextSteamId()
+{
+    if (m_SteamIdsQueue.TryDequeue(out var steamId))
+    {
+        return new CSteamID(steamId);
+    }
 
-            while (DummyUsers.Any(x => x.SteamID == result))
+    m_Logger.LogWarning("No more Steam IDs available from the file.");
+    return new CSteamID(1); // Fallback to using Steam ID 1
+}
+
+
+        private HashSet<ulong> ReadSteamIdsFromFile(string filePath)
+        {
+            var steamIds = new HashSet<ulong>();
+
+            try
             {
-                result.m_SteamID++;
+                if (File.Exists(filePath))
+                {
+                    using (var reader = new StreamReader(filePath))
+                    {
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            if (ulong.TryParse(line, out var steamId))
+                            {
+                                steamIds.Add(steamId);
+                            }
+                            else
+                            {
+                                m_Logger.LogWarning($"Invalid Steam ID in the file: {line}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    m_Logger.LogWarning($"Steam IDs file not found: {filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogError(ex, $"Error reading Steam IDs from file: {filePath}");
             }
 
-            return result;
+            return steamIds;
         }
 
         public virtual ITransportConnection GetTransportConnection()
