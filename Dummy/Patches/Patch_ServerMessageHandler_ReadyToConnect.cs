@@ -27,7 +27,7 @@ namespace Dummy.Patches
             codes.InsertRange(index, new[]
             {
                 new CodeInstruction(OpCodes.Call, Patch_Provider.s_GetDummiesCount),
-                new CodeInstruction(OpCodes.Sub),
+                new CodeInstruction(OpCodes.Add),
             });
 
             return codes;
