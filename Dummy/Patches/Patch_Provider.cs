@@ -48,7 +48,7 @@ namespace Dummy.Patches
                 i += 2;
 
                 codes.Insert(i, new(OpCodes.Call, s_GetDummiesCount));
-                codes.Insert(i + 1, new(OpCodes.Add));
+                codes.Insert(i + 1, new(OpCodes.Sub));
                 break;
             }
             return codes;

@@ -551,7 +551,7 @@ namespace Dummy.Services{
             }
         }
 
-private CSteamID GetNextSteamId()
+internal CSteamID GetNextSteamId()
 {
     if (m_SteamIdsQueue.TryDequeue(out var steamId))
     {

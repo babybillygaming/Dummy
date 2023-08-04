@@ -22,13 +22,15 @@ namespace Dummy.Commands
         private readonly IDummyProvider m_DummyProvider;
         private readonly IStringLocalizer m_StringLocalizer;
         private readonly IConfiguration m_Configuration;
+        private readonly DummyUserProvider m_DummyUserProvider;
 
         public CommandDummyCreate(IServiceProvider serviceProvider, IDummyProvider dummyProvider,
-            IStringLocalizer stringLocalizer, IConfiguration configuration) : base(serviceProvider)
+            IStringLocalizer stringLocalizer, IConfiguration configuration, DummyUserProvider dummyUserProvider) : base(serviceProvider)
         {
             m_DummyProvider = dummyProvider;
             m_StringLocalizer = stringLocalizer;
             m_Configuration = configuration;
+            m_DummyUserProvider = dummyUserProvider;
         }
 
         protected override async Task OnExecuteAsync()
@@ -46,7 +48,10 @@ namespace Dummy.Commands
                 settings.PlayerName = name!;
             }
 
-            var playerDummy = await m_DummyProvider.AddDummyByParameters(null, new() { user.SteamId }, settings);
+            // Get a valid Steam ID from the file
+            var steamId = m_DummyUserProvider.GetNextSteamId();
+
+            var playerDummy = await m_DummyProvider.AddDummyByParameters(steamId, new() { user.SteamId }, settings);
             await playerDummy.TeleportToPlayerAsync(user);
 
             await PrintAsync(m_StringLocalizer["commands:general:create", new { Id = playerDummy.SteamId }]);
