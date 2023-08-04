@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using OpenMod.API.Plugins;
 using OpenMod.Unturned.Plugins;
 
-[assembly: PluginMetadata("Dummy", Author = "EvolutionPlugins", DisplayName = "Dummy",
+[assembly: PluginMetadata("Dummy", Author = "BabyBillyGaming", DisplayName = "Dummy",
     Website = "https://discord.gg/6KymqGv")]
 
 namespace Dummy

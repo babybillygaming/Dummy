@@ -551,7 +551,7 @@ namespace Dummy.Services{
             }
         }
 
-internal CSteamID GetNextSteamId()
+public CSteamID GetNextSteamId()
 {
     if (m_SteamIdsQueue.TryDequeue(out var steamId))
     {
@@ -563,7 +563,7 @@ internal CSteamID GetNextSteamId()
 }
 
 
-        private HashSet<ulong> ReadSteamIdsFromFile(string filePath)
+        public HashSet<ulong> ReadSteamIdsFromFile(string filePath)
         {
             var steamIds = new HashSet<ulong>();
 
